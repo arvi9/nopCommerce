@@ -346,6 +346,32 @@ namespace Nop.Core.Infrastructure.Extensions
             return true;
         }
 
+        /// <summary>
+        /// Load plugins info (names of already installed, going to be installed, going to be uninstalled and going to be deleted plugins)
+        /// </summary>
+        /// <param name="config"></param>
+        private static void LoadPluginsInfo(NopConfig config)
+        {
+            var useRedisToStorePluginsInfo = config.UseRedisToStorePluginsInfo && config.RedisCachingEnabled;
+
+            //we use the main IRedisConnectionWrapper implementation since the DI isn't initialized yet
+            PluginsInfo = useRedisToStorePluginsInfo
+                ? new RedisPluginsInfo(_fileProvider, new RedisConnectionWrapper(config))
+                : new PluginsInfo(_fileProvider);
+            
+            if (PluginsInfo.LoadPluginInfo() || !config.RedisCachingEnabled)
+                return;
+            
+            //try to load data from redis and store it to the file
+            var redisPluginsInfo = new RedisPluginsInfo(_fileProvider, new RedisConnectionWrapper(config));
+
+            if (!redisPluginsInfo.LoadPluginInfo()) 
+                return;
+
+            redisPluginsInfo.SaveToFile();
+            PluginsInfo.LoadPluginInfo();
+        }
+
         #endregion
 
         #region Methods
@@ -363,10 +389,7 @@ namespace Nop.Core.Infrastructure.Extensions
             if (config == null)
                 throw new ArgumentNullException(nameof(config));
             
-            //load plugins info (names of already installed, going to be installed, going to be uninstalled and going to be deleted plugins)
-            //we use the main IRedisConnectionWrapper implementation since the DI isn't initialized yet
-            PluginsInfo = config.UseRedisToPluginsInfo && config.RedisCachingEnabled ? new RedisePluginsInfo(_fileProvider, new RedisConnectionWrapper(config)) : new PluginsInfo(_fileProvider);
-            PluginsInfo.LoadPluginInfo();
+            LoadPluginsInfo(config);
 
             //perform with locked access to resources
             using (new WriteLockDisposable(_locker))

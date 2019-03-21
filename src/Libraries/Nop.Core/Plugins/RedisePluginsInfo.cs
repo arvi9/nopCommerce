@@ -8,7 +8,7 @@ namespace Nop.Core.Plugins
     /// <summary>
     /// Represents an information about plugins
     /// </summary>
-    public partial class RedisePluginsInfo : PluginsInfo
+    public partial class RedisPluginsInfo : PluginsInfo
     {
         #region Fields
 
@@ -18,7 +18,7 @@ namespace Nop.Core.Plugins
 
         #region Ctor
 
-        public RedisePluginsInfo(INopFileProvider fileProvider, IRedisConnectionWrapper connectionWrapper)
+        public RedisPluginsInfo(INopFileProvider fileProvider, IRedisConnectionWrapper connectionWrapper)
             : base(fileProvider)
         {
             this._db = connectionWrapper.GetDatabase(RedisDatabaseNumber.Plugin);
@@ -29,21 +29,29 @@ namespace Nop.Core.Plugins
         #region Methods
 
         /// <summary>
-        /// Save plugins info to the file
+        /// Save plugins info to the redis
         /// </summary>
         public override void Save()
         {
             var text = JsonConvert.SerializeObject(this, Formatting.Indented);
-            _db.StringSetAsync(nameof(RedisePluginsInfo), text);
+            _db.StringSet(nameof(RedisPluginsInfo), text);
+        }
+
+        /// <summary>
+        /// Save plugins info to the file
+        /// </summary>
+        public void SaveToFile()
+        {
+            base.Save();
         }
 
         /// <summary>
         /// Get plugins info
         /// </summary>
-        public override void LoadPluginInfo()
+        public override bool LoadPluginInfo()
         {
             //try to get plugin info from the JSON file
-            var serializedItem = _db.StringGetAsync(nameof(RedisePluginsInfo)).Result;
+            var serializedItem = _db.StringGet(nameof(RedisPluginsInfo));
             if (!serializedItem.HasValue)
             {
                 base.LoadPluginInfo();
@@ -52,10 +60,10 @@ namespace Nop.Core.Plugins
                 //delete the plugins info file
                 var filePath = _fileProvider.MapPath(NopPluginDefaults.PluginsInfoFilePath);
                 _fileProvider.DeleteFile(filePath);
-                return;
+                return false;
             }
 
-            DeserializePluginInfo(serializedItem);
+            return DeserializePluginInfo(serializedItem);
         }
 
         #endregion

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using Nop.Core.Infrastructure;
@@ -68,7 +69,8 @@ namespace Nop.Core.Plugins
         /// Deserialize PluginInfo from json
         /// </summary>
         /// <param name="json">Json data of PluginInfo</param>
-        protected virtual void DeserializePluginInfo(string json)
+        /// <returns>True if data are loaded, otherwise False</returns>
+        protected virtual bool DeserializePluginInfo(string json)
         {
             var pluginsInfo = JsonConvert.DeserializeObject<PluginsInfo>(json);
 
@@ -76,6 +78,9 @@ namespace Nop.Core.Plugins
             PluginNamesToUninstall = pluginsInfo.PluginNamesToUninstall;
             PluginNamesToDelete = pluginsInfo.PluginNamesToDelete;
             PluginNamesToInstall = pluginsInfo.PluginNamesToInstall;
+
+            return InstalledPluginNames.Any() || PluginNamesToUninstall.Any() || PluginNamesToDelete.Any() ||
+                   PluginNamesToInstall.Any();
         }
 
         #endregion
@@ -105,7 +110,7 @@ namespace Nop.Core.Plugins
         /// <summary>
         /// Get plugins info
         /// </summary>
-        public virtual void LoadPluginInfo()
+        public virtual bool LoadPluginInfo()
         {
             //check whether plugins info file exists
             var filePath = _fileProvider.MapPath(NopPluginDefaults.PluginsInfoFilePath);
@@ -121,9 +126,9 @@ namespace Nop.Core.Plugins
             //try to get plugin info from the JSON file
             var text = _fileProvider.ReadAllText(filePath, Encoding.UTF8);
             if (string.IsNullOrEmpty(text))
-                return;
+                return false;
 
-            DeserializePluginInfo(text);
+            return DeserializePluginInfo(text);
         }
 
         #endregion

@@ -16,7 +16,8 @@ namespace Nop.Core.Plugins
         /// <summary>
         /// Get plugins info
         /// </summary>
-        void LoadPluginInfo();
+        /// <returns>True if data are loaded, otherwise False</returns>
+        bool LoadPluginInfo();
 
         /// <summary>
         /// Gets or sets the list of all installed plugin names

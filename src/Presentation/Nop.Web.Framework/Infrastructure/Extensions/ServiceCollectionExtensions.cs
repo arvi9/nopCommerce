@@ -46,6 +46,8 @@ namespace Nop.Web.Framework.Infrastructure.Extensions
         /// <returns>Configured service provider</returns>
         public static IServiceProvider ConfigureApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
+            //add NopConfig configuration parameters
+            services.ConfigureStartupConfig<NopConfig>(configuration.GetSection("Nop"));
             //add hosting configuration parameters
             services.ConfigureStartupConfig<HostingConfig>(configuration.GetSection("Hosting"));
             //add accessor to HttpContext
