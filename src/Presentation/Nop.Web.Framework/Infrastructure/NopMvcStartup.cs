@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using EasyCaching.Core;
+using EasyCaching.InMemory;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Infrastructure;
@@ -29,6 +31,12 @@ namespace Nop.Web.Framework.Infrastructure
 
             //add custom redirect result executor
             services.AddNopRedirectResultExecutor();
+
+            services.AddEasyCaching(option =>
+            {
+                //use memory cache
+                option.UseInMemory("nopCommerce");
+            });
         }
 
         /// <summary>
@@ -45,6 +53,9 @@ namespace Nop.Web.Framework.Infrastructure
 
             //MVC routing
             application.UseNopMvc();
+
+            //easy caching
+            application.UseEasyCaching();
         }
 
         /// <summary>

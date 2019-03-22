@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using EasyCaching.Core;
 using Newtonsoft.Json;
 using Nop.Core.Configuration;
 using StackExchange.Redis;
@@ -49,16 +50,16 @@ namespace Nop.Core.Caching
         /// Gets the list of cache keys
         /// </summary>
         /// <param name="endPoint">Network address</param>
-        /// <param name="pattern">String key pattern</param>
+        /// <param name="prefix">String key prefix</param>
         /// <returns>List of cache keys</returns>
-        protected virtual IEnumerable<RedisKey> GetKeys(EndPoint endPoint, string pattern = null)
+        protected virtual IEnumerable<RedisKey> GetKeys(EndPoint endPoint, string prefix = null)
         {
             var server = _connectionWrapper.GetServer(endPoint);
 
             //we can use the code below (commented), but it requires administration permission - ",allowAdmin=true"
             //server.FlushDatabase();
 
-            var keys = server.Keys(_db.Database, string.IsNullOrEmpty(pattern) ? null : $"*{pattern}*");
+            var keys = server.Keys(_db.Database, string.IsNullOrEmpty(prefix) ? null : $"{prefix}*");
 
             //we should always persist the data protection key list
             keys = keys.Where(key => !key.ToString().Equals(NopCachingDefaults.RedisDataProtectionKey, StringComparison.OrdinalIgnoreCase));
@@ -72,28 +73,28 @@ namespace Nop.Core.Caching
         /// <typeparam name="T">Type of cached item</typeparam>
         /// <param name="key">Key of cached item</param>
         /// <returns>The cached value associated with the specified key</returns>
-        protected virtual async Task<T> GetAsync<T>(string key)
+        protected virtual async Task<CacheValue<T>> GetAsync<T>(string key)
         {
             //little performance workaround here:
             //we use "PerRequestCacheManager" to cache a loaded object in memory for the current HTTP request.
             //this way we won't connect to Redis server many times per HTTP request (e.g. each time to load a locale or setting)
             if (_perRequestCacheManager.IsSet(key))
-                return _perRequestCacheManager.Get(key, () => default(T), 0);
+                return new CacheValue<T>(_perRequestCacheManager.Get(key, () => default(T), 0), true);
 
             //get serialized item from cache
             var serializedItem = await _db.StringGetAsync(key);
             if (!serializedItem.HasValue)
-                return default(T);
+                return new CacheValue<T>(default(T), true);
 
             //deserialize item
             var item = JsonConvert.DeserializeObject<T>(serializedItem);
             if (item == null)
-                return default(T);
+                return new CacheValue<T>(default(T), true);
 
             //set item in the per-request cache
             _perRequestCacheManager.Set(key, item, 0);
 
-            return item;
+            return new CacheValue<T>(item, true);
         }
         
         /// <summary>
@@ -145,7 +146,7 @@ namespace Nop.Core.Caching
         /// <param name="acquire">Function to load item if it's not in the cache yet</param>
         /// <param name="cacheTime">Cache time in minutes; pass 0 to do not cache; pass null to use the default time</param>
         /// <returns>The cached value associated with the specified key</returns>
-        public async Task<T> GetAsync<T>(string key, Func<Task<T>> acquire, int? cacheTime = null)
+        public async Task<CacheValue<T>> GetAsync<T>(string key, Func<Task<T>> acquire, int? cacheTime = null)
         {
             //item already is in cache, so return it
             if (await IsSetAsync(key))
@@ -158,7 +159,7 @@ namespace Nop.Core.Caching
             if ((cacheTime ?? NopCachingDefaults.CacheTime) > 0)
                 await SetAsync(key, result, cacheTime ?? NopCachingDefaults.CacheTime);
 
-            return result;
+            return new CacheValue<T>(result, true);
         }
 
         /// <summary>
@@ -267,17 +268,18 @@ namespace Nop.Core.Caching
             _perRequestCacheManager.Remove(key);
         }
 
+
         /// <summary>
-        /// Removes items by key pattern
+        /// Removes items by key prefix
         /// </summary>
-        /// <param name="pattern">String key pattern</param>
-        public virtual void RemoveByPattern(string pattern)
+        /// <param name="prefix">String key prefix</param>
+        public virtual void RemoveByPattern(string prefix)
         {
-            _perRequestCacheManager.RemoveByPattern(pattern);
+            _perRequestCacheManager.RemoveByPattern(prefix);
 
             foreach (var endPoint in _connectionWrapper.GetEndPoints())
             {
-                var keys = GetKeys(endPoint, pattern);
+                var keys = GetKeys(endPoint, prefix);
 
                 _db.KeyDelete(keys.ToArray());
             }

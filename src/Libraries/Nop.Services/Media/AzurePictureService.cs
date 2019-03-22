@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using EasyCaching.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -172,7 +173,7 @@ namespace Nop.Services.Media
         /// <returns>Result</returns>
         protected override bool GeneratedThumbExists(string thumbFilePath, string thumbFileName)
         {
-            return GeneratedThumbExistsAsync(thumbFilePath, thumbFileName).Result;
+            return GeneratedThumbExistsAsync(thumbFilePath, thumbFileName).Result?.Value ?? false;
         }
 
         /// <summary>
@@ -220,7 +221,7 @@ namespace Nop.Services.Media
         /// <param name="thumbFilePath">Thumb file path</param>
         /// <param name="thumbFileName">Thumb file name</param>
         /// <returns>Result</returns>
-        protected virtual async Task<bool> GeneratedThumbExistsAsync(string thumbFilePath, string thumbFileName)
+        protected virtual async Task<CacheValue<bool>> GeneratedThumbExistsAsync(string thumbFilePath, string thumbFileName)
         {
             try
             {
@@ -235,7 +236,7 @@ namespace Nop.Services.Media
             }
             catch
             {
-                return false;
+                return new CacheValue<bool>(false, true);
             }
         }
 

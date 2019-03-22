@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using EasyCaching.Core;
 using Nop.Core.Caching;
 
 namespace Nop.Tests
@@ -7,7 +8,7 @@ namespace Nop.Tests
     /// <summary>
     /// Represents a null cache (caches nothing)
     /// </summary>
-    public partial class NopNullCache : IStaticCacheManager
+    public partial class TestCacheManager : IStaticCacheManager
     {
         /// <summary>
         /// Get a cached item. If it's not in the cache yet, then load and cache it
@@ -19,7 +20,7 @@ namespace Nop.Tests
         /// <returns>The cached value associated with the specified key</returns>
         public virtual T Get<T>(string key, Func<T> acquire, int? cacheTime = null)
         {
-            return default(T);
+            return acquire();
         }
 
         /// <summary>
@@ -30,9 +31,10 @@ namespace Nop.Tests
         /// <param name="acquire">Function to load item if it's not in the cache yet</param>
         /// <param name="cacheTime">Cache time in minutes; pass 0 to do not cache; pass null to use the default time</param>
         /// <returns>The cached value associated with the specified key</returns>
-        public async Task<T> GetAsync<T>(string key, Func<Task<T>> acquire, int? cacheTime = null)
+        public async Task<CacheValue<T>> GetAsync<T>(string key, Func<Task<T>> acquire, int? cacheTime = null)
         {
-            return await acquire();
+            var rez = await acquire();
+            return new CacheValue<T>(rez, true);
         }
 
         /// <summary>
@@ -63,11 +65,12 @@ namespace Nop.Tests
         {
         }
 
+
         /// <summary>
-        /// Removes items by key pattern
+        /// Removes items by key prefix
         /// </summary>
-        /// <param name="pattern">String key pattern</param>
-        public virtual void RemoveByPattern(string pattern)
+        /// <param name="prefix">String key prefix</param>
+        public virtual void RemoveByPattern(string prefix)
         {
         }
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Nop.Core.ComponentModel;
@@ -132,10 +131,10 @@ namespace Nop.Core.Caching
         }
 
         /// <summary>
-        /// Removes items by key pattern
+        /// Removes items by key prefix
         /// </summary>
-        /// <param name="pattern">String key pattern</param>
-        public virtual void RemoveByPattern(string pattern)
+        /// <param name="prefix">String key prefix</param>
+        public virtual void RemoveByPattern(string prefix)
         {
             using (new ReaderWriteLockDisposable(_locker, ReaderWriteLockType.UpgradeableRead))
             {
@@ -143,10 +142,8 @@ namespace Nop.Core.Caching
                 if (items == null)
                     return;
 
-                //get cache keys that matches pattern
-                var regex = new Regex(pattern,
-                    RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                var matchesKeys = items.Keys.Select(p => p.ToString()).Where(key => regex.IsMatch(key)).ToList();
+                //get cache keys that start with prefix
+                var matchesKeys = items.Keys.Select(p => p.ToString()).Where(key => key.StartsWith(prefix)).ToList();
 
                 if (!matchesKeys.Any())
                     return;
