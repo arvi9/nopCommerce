@@ -359,7 +359,7 @@ namespace Nop.Core.Infrastructure.Extensions
                 ? new RedisPluginsInfo(_fileProvider, new RedisConnectionWrapper(config))
                 : new PluginsInfo(_fileProvider);
             
-            if (PluginsInfo.LoadPluginInfo() || !config.RedisCachingEnabled)
+            if (PluginsInfo.LoadPluginInfo() || config.RedisCachingEnabled)
                 return;
             
             //try to load data from redis and store it to the file
@@ -367,9 +367,9 @@ namespace Nop.Core.Infrastructure.Extensions
 
             if (!redisPluginsInfo.LoadPluginInfo()) 
                 return;
-
-            redisPluginsInfo.SaveToFile();
-            PluginsInfo.LoadPluginInfo();
+            
+            PluginsInfo.CopyFrom(redisPluginsInfo);
+            PluginsInfo.Save();
         }
 
         #endregion

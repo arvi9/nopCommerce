@@ -20,6 +20,12 @@ namespace Nop.Core.Plugins
         bool LoadPluginInfo();
 
         /// <summary>
+        /// Copy information about plugins from another instance 
+        /// </summary>
+        /// <param name="pluginsInfo">Information about plugins</param>
+        void CopyFrom(IPluginsInfo pluginsInfo);
+
+        /// <summary>
         /// Gets or sets the list of all installed plugin names
         /// </summary>
         IList<string> InstalledPluginNames { get; set; }

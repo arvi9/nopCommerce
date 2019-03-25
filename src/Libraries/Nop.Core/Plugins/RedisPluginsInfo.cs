@@ -38,32 +38,30 @@ namespace Nop.Core.Plugins
         }
 
         /// <summary>
-        /// Save plugins info to the file
-        /// </summary>
-        public void SaveToFile()
-        {
-            base.Save();
-        }
-
-        /// <summary>
         /// Get plugins info
         /// </summary>
+        /// <returns>True if data are loaded, otherwise False</returns>
         public override bool LoadPluginInfo()
         {
             //try to get plugin info from the JSON file
             var serializedItem = _db.StringGet(nameof(RedisPluginsInfo));
-            if (!serializedItem.HasValue)
-            {
-                base.LoadPluginInfo();
-                Save();
 
-                //delete the plugins info file
-                var filePath = _fileProvider.MapPath(NopPluginDefaults.PluginsInfoFilePath);
-                _fileProvider.DeleteFile(filePath);
-                return false;
+            if (serializedItem.HasValue) 
+                return DeserializePluginInfo(serializedItem);
+
+            var loaded = false;
+
+            if (base.LoadPluginInfo())
+            {
+                Save();
+                loaded = true;
             }
 
-            return DeserializePluginInfo(serializedItem);
+            //delete the plugins info file
+            var filePath = _fileProvider.MapPath(NopPluginDefaults.PluginsInfoFilePath);
+            _fileProvider.DeleteFile(filePath);
+            
+            return loaded;
         }
 
         #endregion

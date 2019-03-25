@@ -12,10 +12,10 @@
         /// <summary>
         /// Database for caching
         /// </summary>
-        Cache = 10,
+        Cache = 2,
         /// <summary>
         /// Database for plugins
         /// </summary>
-        Plugin = 20
+        Plugin = 3
     }
 }

@@ -108,8 +108,24 @@ namespace Nop.Core.Plugins
         }
 
         /// <summary>
+        /// Copy information about plugins from another instance 
+        /// </summary>
+        /// <param name="pluginsInfo">Information about plugins</param>
+        public virtual void CopyFrom(IPluginsInfo pluginsInfo)
+        {
+            InstalledPluginNames = pluginsInfo.InstalledPluginNames?.ToList();
+            PluginNamesToUninstall = pluginsInfo.PluginNamesToUninstall?.ToList();
+            PluginNamesToDelete = pluginsInfo.PluginNamesToDelete?.ToList();
+            PluginNamesToInstall = pluginsInfo.PluginNamesToInstall?.ToList();
+            AssemblyLoadedCollision = pluginsInfo.AssemblyLoadedCollision?.ToList();
+            PluginDescriptors = pluginsInfo.PluginDescriptors?.ToList();
+            IncompatiblePlugins = pluginsInfo.IncompatiblePlugins?.ToList();
+        }
+
+        /// <summary>
         /// Get plugins info
         /// </summary>
+        /// <returns>True if data are loaded, otherwise False</returns>
         public virtual bool LoadPluginInfo()
         {
             //check whether plugins info file exists
@@ -119,16 +135,14 @@ namespace Nop.Core.Plugins
                 //file doesn't exist, so try to get only installed plugin names from the obsolete file
                 InstalledPluginNames = GetObsoleteInstalledPluginNames();
 
-                //and save info into a new file
-                Save();
+                //and save info into a new file if need
+                if(InstalledPluginNames.Any())
+                    Save();
             }
 
             //try to get plugin info from the JSON file
-            var text = _fileProvider.ReadAllText(filePath, Encoding.UTF8);
-            if (string.IsNullOrEmpty(text))
-                return false;
-
-            return DeserializePluginInfo(text);
+            var text = _fileProvider.FileExists(filePath) ? _fileProvider.ReadAllText(filePath, Encoding.UTF8) : string.Empty;
+            return !string.IsNullOrEmpty(text) && DeserializePluginInfo(text);
         }
 
         #endregion
